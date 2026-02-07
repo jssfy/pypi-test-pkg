@@ -1,6 +1,6 @@
 [project]
 name = "pypi-test-pkg-jssfy"
-version = "0.0.1"
+version = "0.1.0"
 description = "A test package for PyPI publishing workflow testing"
 readme = "README.md"
 requires-python = ">=3.9"

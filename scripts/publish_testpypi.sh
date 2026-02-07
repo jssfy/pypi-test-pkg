@@ -29,22 +29,35 @@ echo "步骤 2: 检查版本号..."
 VERSION=$(grep "version = " pyproject.toml | head -1 | cut -d'"' -f2)
 echo "当前版本: $VERSION"
 
-# 3. 构建分发包
+# 3. 检查是否在 TestPyPI 上已存在该版本
 echo ""
-echo "步骤 3: 构建分发包..."
+echo "步骤 3: 检查版本是否已存在..."
+PACKAGE_NAME=$(grep "name = " pyproject.toml | head -1 | cut -d'"' -f2)
+echo "包名: $PACKAGE_NAME"
+
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://test.pypi.org/pypi/$PACKAGE_NAME/$VERSION/json")
+if [ "$HTTP_CODE" = "200" ]; then
+    echo "错误: $PACKAGE_NAME $VERSION 已存在于 TestPyPI 上！"
+    exit 1
+fi
+echo "版本 $VERSION 尚未发布，可以继续。"
+
+# 4. 构建分发包
+echo ""
+echo "步骤 4: 构建分发包..."
 python3 -m build
 
-# 4. 检查分发包
+# 5. 检查分发包
 echo ""
-echo "步骤 4: 检查分发包..."
+echo "步骤 5: 检查分发包..."
 python3 -m twine check dist/*
 
-# 5. 显示生成的文件
+# 6. 显示生成的文件
 echo ""
-echo "步骤 5: 生成的文件:"
+echo "步骤 6: 生成的文件:"
 ls -lh dist/
 
-# 6. 确认上传
+# 7. 确认上传
 echo ""
 echo "==================================="
 echo "准备上传到 TestPyPI"
@@ -56,9 +69,9 @@ read -p "是否继续上传到 TestPyPI? (y/n) " -n 1 -r
 echo ""
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # 7. 上传到 TestPyPI
+    # 8. 上传到 TestPyPI
     echo ""
-    echo "步骤 6: 上传到 TestPyPI..."
+    echo "步骤 8: 上传到 TestPyPI..."
     echo "请输入 TestPyPI 的认证信息:"
     echo "Username: __token__"
     echo "Password: (你的 TestPyPI token)"
@@ -66,7 +79,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 
     python3 -m twine upload --repository testpypi dist/*
 
-    # 8. 显示结果
+    # 9. 显示结果
     PACKAGE_NAME=$(grep "name = " pyproject.toml | head -1 | cut -d'"' -f2)
     echo ""
     echo "==================================="

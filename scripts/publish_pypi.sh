@@ -35,6 +35,13 @@ echo "步骤 3: 检查版本是否已存在..."
 PACKAGE_NAME=$(grep "name = " pyproject.toml | head -1 | cut -d'"' -f2)
 echo "包名: $PACKAGE_NAME"
 
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://pypi.org/pypi/$PACKAGE_NAME/$VERSION/json")
+if [ "$HTTP_CODE" = "200" ]; then
+    echo "错误: $PACKAGE_NAME $VERSION 已存在于 PyPI 上！"
+    exit 1
+fi
+echo "版本 $VERSION 尚未发布，可以继续。"
+
 # 4. 构建分发包
 echo ""
 echo "步骤 4: 构建分发包..."
