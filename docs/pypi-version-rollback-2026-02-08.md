@@ -101,17 +101,28 @@ latest = max(所有已发布版本, key=PEP440排序)
 
 **结论：自动回退到次新版本。**
 
-模拟验证（用版本约束排除 `0.1.0`，等效于删除后的效果）：
+**实际验证**：在 TestPyPI 网页上删除 `0.1.0` 后，对比删除前后的 pip 行为：
 
 ```bash
-pip install --dry-run -i https://test.pypi.org/simple/ 'pypi-test-pkg-jssfy<0.1.0'
+# 删除前
+pip install --dry-run -i https://test.pypi.org/simple/ pypi-test-pkg-jssfy
+# → Would install pypi-test-pkg-jssfy-0.1.0
+
+# 删除后（需 --no-cache-dir 绕过本地缓存）
+pip install --dry-run --no-cache-dir -i https://test.pypi.org/simple/ pypi-test-pkg-jssfy
+# → Would install pypi-test-pkg-jssfy-0.0.1    ← 自动回退到次新版本
 ```
 
-```
-Would install pypi-test-pkg-jssfy-0.0.1    ← 自动回退到次新版本
+同时验证版本特定 API 已失效：
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" "https://test.pypi.org/pypi/pypi-test-pkg-jssfy/0.1.0/json"
+# → 404    ← 删除已生效
 ```
 
-原理：pip 从 Simple Index 获取所有可用版本，按 PEP 440 排序后选最高的。删除 `0.1.0` 后，Index 中只剩 `0.0.1`，pip 自然选择它。
+**原理**：pip 从 Simple Index 获取所有可用版本，按 PEP 440 排序后选最高的。删除 `0.1.0` 后，Index 中只剩 `0.0.1`，pip 自然选择它。
+
+**注意：CDN 缓存延迟**。删除操作在服务端立即生效（版本特定 API 返回 404），但 JSON API 和 Simple Index 存在 CDN 缓存，短时间内可能仍返回旧数据。pip 加 `--no-cache-dir` 可绕过本地缓存，但 CDN 侧缓存需等待自动过期。
 
 ### 问题 2：已删除的版本号能否复用？
 
